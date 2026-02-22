@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>顺身功能 · 离线投票统计</title>
+    <!-- 简单清爽风格，移动优先 -->
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f4f7fb;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 16px;
+        }
+        .card {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0, 10, 30, 0.08), 0 6px 12px rgba(0, 0, 0, 0.02);
+            padding: 32px 24px;
+            transition: all 0.2s;
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            background: linear-gradient(145deg, #1A2A3A, #2C3E50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .subhead {
+            font-size: 1rem;
+            color: #5E6F8D;
+            margin-bottom: 24px;
+            border-left: 4px solid #9bb8f0;
+            padding-left: 16px;
+            background: #F0F5FF;
+            border-radius: 0 12px 12px 0;
+            line-height: 1.5;
+            font-weight: 400;
+        }
+        .question {
+            background: #F8FAFE;
+            padding: 24px 20px;
+            border-radius: 28px;
+            margin: 28px 0 24px;
+            text-align: center;
+            border: 1px solid #E9EEF5;
+        }
+        .question p {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: #1A2A3A;
+            margin-bottom: 16px;
+        }
+        .button-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .vote-btn {
+            flex: 1 1 180px;
+            border: none;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 60px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 6px 14px rgba(0, 20, 40, 0.08);
+            transition: all 0.15s ease;
+            cursor: pointer;
+            border: 1.5px solid transparent;
+            color: white;
+        }
+        .vote-btn:active {
+            transform: scale(0.97);
+        }
+        .vote-btn:disabled {
+            opacity: 0.5;
+            filter: grayscale(0.6);
+            pointer-events: none;
+            box-shadow: none;
+        }
+        .btn-agree {
+            background: #1E824C;
+            background: linear-gradient(145deg, #2e7d5e, #1e6a4c);
+        }
+        .btn-agree:hover:not(:disabled) {
+            background: #145A3E;
+            box-shadow: 0 12px 20px -10px #1e6a4c80;
+        }
+        .btn-disagree {
+            background: #96281B;
+            background: linear-gradient(145deg, #b93a2c, #8e2a1f);
+        }
+        .btn-disagree:hover:not(:disabled) {
+            background: #781f15;
+            box-shadow: 0 12px 20px -10px #96281B80;
+        }
+        .stats-container {
+            background: #F8FAFE;
+            border-radius: 28px;
+            padding: 22px 20px;
+            margin-top: 30px;
+            border: 1px solid #E9EEF5;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 1.1rem;
+            margin: 12px 0;
+            padding: 8px 0;
+            border-bottom: 1px dashed #D0DDEB;
+        }
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        .stat-label {
+            color: #2C3E50;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stat-number {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #0F1C2F;
+            background: white;
+            padding: 4px 14px;
+            border-radius: 40px;
+            box-shadow: inset 0 1px 3px #00000010;
+        }
+        .progress-bg {
+            background: #E2E9F3;
+            border-radius: 40px;
+            height: 24px;
+            margin: 16px 0 10px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px #00000010;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #457fca, #5691c8);
+            border-radius: 40px;
+            transition: width 0.3s ease;
+        }
+        .total-votes {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #6b7b98;
+            margin-top: 16px;
+            font-weight: 500;
+        }
+        .badge {
+            background: #e6ecf5;
+            color: #2b3f5c;
+            padding: 4px 14px;
+            border-radius: 60px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+        .footer-note {
+            margin-top: 24px;
+            font-size: 0.85rem;
+            color: #7F8FA0;
+            text-align: center;
+            border-top: 1px solid #e2eaf2;
+            padding-top: 18px;
+        }
+        .footer-note a {
+            color: #3a6ea5;
+            text-decoration: none;
+        }
+        .error-message {
+            color: #b02e2e;
+            background: #ffe6e6;
+            border-radius: 100px;
+            padding: 10px 18px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        .emoji-icon {
+            font-size: 1.6rem;
+            line-height: 1;
+        }
+        .status-tag {
+            background: white;
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-size: 0.9rem;
+            color: #2C3E50;
+            border: 1px solid #cdddec;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>⚡ 顺身 · 民意端口</h1>
+        <div class="subhead">离线统计 / 实时聚合 · 你的意见直接影响结果</div>
+
+        <!-- 主投票区 -->
+        <div class="question">
+            <p>您是否同意启用「顺身」功能？</p>
+            <div class="button-group">
+                <button class="vote-btn btn-agree" id="voteAgree" aria-label="同意">
+                    <span class="emoji-icon">👍</span> 同意
+                </button>
+                <button class="vote-btn btn-disagree" id="voteDisagree" aria-label="不同意">
+                    <span class="emoji-icon">👎</span> 不同意
+                </button>
+            </div>
+            <div class="status-tag" id="localVoteStatus" style="margin-top: 18px;">📱 未投票</div>
+        </div>
+
+        <!-- 统计显示区（实时更新） -->
+        <div class="stats-container">
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                <span class="badge">📊 当前统计</span>
+                <span class="badge" id="listenerState">🟢 实时</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label"><span style="font-size:1.4rem;">👍</span> 同意</span>
+                <span class="stat-number" id="agreeCount">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label"><span style="font-size:1.4rem;">👎</span> 不同意</span>
+                <span class="stat-number" id="disagreeCount">0</span>
+            </div>
+
+            <!-- 简易百分比条 -->
+            <div class="progress-bg">
+                <div class="progress-fill" id="agreePercentBar" style="width:0%;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size:0.9rem; color:#506680;">
+                <span>同意 <span id="agreePercent">0</span>%</span>
+                <span>不同意 <span id="disagreePercent">0</span>%</span>
+            </div>
+            <div class="total-votes">
+                🗳️ 总投票数：<strong id="totalVotes">0</strong> 人次
+            </div>
+        </div>
+
+        <!-- 离线存储说明 & GitHub 托管信息 -->
+        <div class="footer-note">
+            ⚙️ 部署在 GitHub Pages · 数据实时存储于 Firebase <br/>
+            <span style="opacity:0.6;">⬇ 每人仅可投一票 (基于浏览器记录) ⬇</span>
+            <br>
+</div>
+    </div>
+
+    <!-- 使用 Firebase Modular SDK (v9) 通过 CDN 以 module 方式引入 -->
+    <script type="module">
+        // ====================  Firebase 项目配置 (请替换为你自己的配置) ====================
+        // 如何创建: 访问 https://console.firebase.google.com/ 新建项目 → 添加 Web 应用 → 复制配置
+        // 然后在 Firestore 数据库 → 规则 中设置为以下规则以保证安全收集投票:
+        /*
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /votes/{document} {
+                  allow read: if true;          // 任何人可查看投票结果
+                  allow create: if true;         // 仅允许新增投票文档
+                  allow update, delete: if false; // 禁止修改或删除
+                }
+              }
+            }
+        */
+        const firebaseConfig = {
+            apiKey: "AIzaSyB62-_3jyp5zaNRSD2iPKhTaeM7aPHbP5o",            // 请替换为你的真实apiKey
+            authDomain: "shunshen-3fd81.firebaseapp.com",
+            projectId: "shunshen-3fd81",
+            storageBucket: "shunshen-3fd81.firebasestorage.app",
+            messagingSenderId: "520457525608",
+            appId: "1:520457525608:web:b1bc01b8a289b1b01b5edd"
+        };
+
+
+        // 导入所需模块 (使用官方CDN)
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js';
+        import { getFirestore, collection, query, onSnapshot, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js';
+
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // DOM 元素
+        const agreeBtn = document.getElementById('voteAgree');
+        const disagreeBtn = document.getElementById('voteDisagree');
+        const agreeSpan = document.getElementById('agreeCount');
+        const disagreeSpan = document.getElementById('disagreeCount');
+        const totalSpan = document.getElementById('totalVotes');
+        const agreePercentSpan = document.getElementById('agreePercent');
+        const disagreePercentSpan = document.getElementById('disagreePercent');
+        const percentBar = document.getElementById('agreePercentBar');
+        const localStatus = document.getElementById('localVoteStatus');
+        const listenerState = document.getElementById('listenerState');
+        const clearLocalBtn = document.getElementById('clearLocalVote');
+
+        // 本地投票锁 & localStorage key
+        const VOTE_KEY = 'shun_shen_voted';
+        let isVoting = false;      // 防止重复提交
+
+        // 检查本地是否已投票，更新按钮状态
+        function updateLocalVoteUI() {
+            const hasVoted = localStorage.getItem(VOTE_KEY) === 'true';
+            agreeBtn.disabled = hasVoted;
+            disagreeBtn.disabled = hasVoted;
+            if (hasVoted) {
+                localStatus.innerText = '✅ 你已投票 (本地记录)';
+                localStatus.style.background = '#E3F2E9';
+                localStatus.style.color = '#1F7042';
+            } else {
+                localStatus.innerText = '🆕 尚未投票 (点击按钮参与)';
+                localStatus.style.background = '#FFFFFF';
+                localStatus.style.color = '#2C3E50';
+            }
+        }
+
+        // 初始化本地状态
+        updateLocalVoteUI();
+
+        // 监听 Firestore 中 votes 集合的实时快照
+        const votesQuery = query(collection(db, 'votes'));
+        const unsubscribe = onSnapshot(votesQuery, (snapshot) => {
+            // 统计同意/不同意
+            let agree = 0;
+            let disagree = 0;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.option === 'agree') agree++;
+                else if (data.option === 'disagree') disagree++;
+                // 忽略其他可能存在的脏数据
+            });
+            const total = agree + disagree;
+
+            // 更新数字
+            agreeSpan.textContent = agree;
+            disagreeSpan.textContent = disagree;
+            totalSpan.textContent = total;
+
+            // 计算百分比
+            const agreePercent = total ? Math.round(agree * 100 / total) : 0;
+            const disagreePercent = total ? Math.round(disagree * 100 / total) : 0;
+            agreePercentSpan.textContent = agreePercent;
+            disagreePercentSpan.textContent = disagreePercent;
+            percentBar.style.width = agreePercent + '%';
+
+            // 更新监听状态显示
+            listenerState.innerHTML = '🟢 实时 · ' + new Date().toLocaleTimeString();
+        }, (error) => {
+            console.error('Firestore 监听错误:', error);
+            listenerState.innerHTML = '🔴 连接异常';
+            listenerState.style.background = '#FDE7E7';
+            alert('统计加载失败，请检查 Firebase 配置或网络。\n' + error.message);
+        });
+
+        // 通用投票函数
+        async function castVote(option) {
+            // 本地锁 & 本地存储检查
+            if (isVoting) return;
+            if (localStorage.getItem(VOTE_KEY) === 'true') {
+                alert('你已经在本地投过票了 (每人仅限一票)');
+                return;
+            }
+
+            isVoting = true;
+            // 立即禁用按钮防止连点
+            agreeBtn.disabled = true;
+            disagreeBtn.disabled = true;
+
+            try {
+                // 向 Firestore 添加投票文档 (option 和 服务器时间戳)
+                await addDoc(collection(db, 'votes'), {
+                    option: option,
+                    timestamp: serverTimestamp()
+                });
+
+                // 成功后记录本地状态
+                localStorage.setItem(VOTE_KEY, 'true');
+                // 更新UI为已投票 (按钮保持禁用)
+                updateLocalVoteUI();
+            } catch (err) {
+                console.error('投票失败:', err);
+                alert('投票提交失败，请检查网络或稍后重试。\n' + err.message);
+                // 发生错误：恢复按钮启用（如果本地无记录）
+                if (localStorage.getItem(VOTE_KEY) !== 'true') {
+                    agreeBtn.disabled = false;
+                    disagreeBtn.disabled = false;
+                } else {
+                    // 极端情况：本地有但提交失败？重新检查
+                    updateLocalVoteUI();
+                }
+            } finally {
+                isVoting = false;
+            }
+        }
+
+        // 绑定点击事件
+        agreeBtn.addEventListener('click', () => castVote('agree'));
+        disagreeBtn.addEventListener('click', () => castVote('disagree'));
+
+        // 清理本地记录（仅供测试/演示用）
+        clearLocalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (confirm('清除本地投票状态后，你可以再次投票（但真实数据不会删除，只是浏览器允许重新投）。确定吗？')) {
+                localStorage.removeItem(VOTE_KEY);
+                updateLocalVoteUI();
+            }
+        });
+
+        // 可选的页面卸载时取消监听（非必须，但规范）
+        window.addEventListener('beforeunload', () => {
+            unsubscribe();
+        });
+
+        // 附加说明：若localStorage在其他标签页被修改，同步更新当前页按钮 (可选)
+        window.addEventListener('storage', (e) => {
+            if (e.key === VOTE_KEY) {
+                updateLocalVoteUI();
+            }
+        });
+    </script>
+
+    <!-- 备用说明：若用户没有替换配置，显示清晰的指引 -->
+    <div style="display: none;">本网站需要 Firebase 配置才能运行投票统计。请参照源码注释。</div>
+</body>
+</html>
